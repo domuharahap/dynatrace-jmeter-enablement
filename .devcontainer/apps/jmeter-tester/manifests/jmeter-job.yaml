@@ -15,7 +15,7 @@ spec:
       terminationGracePeriodSeconds: 120 #change to 60 after testing
       containers:
         - name: jmeter-tester
-          image: domuharahap/jmeter-tester:v1.0
+          image: domuharahap/jmeter-tester:latest
           imagePullPolicy: Always
           env:
             - name: JVM_THREADS

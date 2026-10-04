@@ -23,7 +23,7 @@ Open the **Terminal** panel in VS Code (`View → Open View → Terminal`) and r
 runJmeterTest v1.0 paste-your-codespaces-url-generated-id-here-80.app.github.dev
 ```
 
-Replace the URL with the Codespaces forwarded URL you copied in [Getting Started](getting-started.md).
+**Replace the URL with the Codespaces forwarded URL** you copied in [Getting Started](getting-started.md).
 
 ---
 

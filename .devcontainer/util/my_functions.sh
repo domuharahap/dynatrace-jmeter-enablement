@@ -59,7 +59,15 @@ runJmeterTest() {
     printInfo "JMeter target URL (auto-detected): $target_url"
   fi
 
-  kubectl create namespace jmeter 2>/dev/null || true
+  # A previous stopJmeterTest may still be tearing the namespace down; creating
+  # resources in a Terminating namespace fails, so wait for it to disappear first.
+  local ns_wait=0
+  while [ "$(kubectl get ns jmeter -o jsonpath='{.status.phase}' 2>/dev/null)" = "Terminating" ] && [ $ns_wait -lt 120 ]; do
+    [ $ns_wait -eq 0 ] && printInfo "Namespace 'jmeter' is still terminating from a previous run, waiting..."
+    sleep 3
+    ns_wait=$(( ns_wait + 3 ))
+  done
+  kubectl get ns jmeter >/dev/null 2>&1 || kubectl create namespace jmeter || return 1
 
   # Create dynatrace-creds secret in the jmeter namespace from the codespace env vars.
   # DT_ENVIRONMENT and DT_OPERATOR_TOKEN are injected by Codespaces secrets at startup.
@@ -77,10 +85,11 @@ runJmeterTest() {
   kubectl -n jmeter create secret generic dynatrace-creds \
     --from-literal="DT_ENVIRONMENT=${dt_env}" \
     --from-literal="DT_OPERATOR_TOKEN=${DT_OPERATOR_TOKEN:-}" \
-    --dry-run=client -o yaml | kubectl apply -f -
+    --dry-run=client -o yaml | kubectl apply -f - || return 1
 
-  # Delete any prior run before re-submitting
-  kubectl delete job jmeter-tester -n jmeter 2>/dev/null || true
+  # Delete any prior run and wait until its pod is gone, so the wait loop below
+  # cannot latch onto the old (Terminating) pod.
+  kubectl delete job jmeter-tester -n jmeter --ignore-not-found --wait=true --timeout=150s
 
   # Patch image and env vars locally before applying — Job spec.template is immutable
   # once created, so all overrides must be baked in before the first kubectl apply.
@@ -88,22 +97,29 @@ runJmeterTest() {
   kubectl set image --local -f "$manifest" \
     jmeter-tester="domuharahap/jmeter-tester:$version" -o yaml \
     | kubectl set env --local -f - JVM_APP_URL="$target_url" -o yaml \
-    | kubectl apply -n jmeter -f -
+    | kubectl apply -n jmeter -f - || { printWarn "Failed to submit the JMeter job"; return 1; }
 
   printInfo "JMeter job submitted (version $version, target: $target_url). Waiting for pod to start..."
 
-  # Wait up to 2 minutes for the pod to reach Running state
-  local timeout=120
+  # Wait up to 5 minutes (image pull of the first run can be slow) for the pod to start
+  local timeout=300
   local elapsed=0
   local pod_phase=""
   local pod_name=""
+  local waiting_reason=""
   while [ $elapsed -lt $timeout ]; do
-    pod_name=$(kubectl get pod -n jmeter -l app=jmeter-tester -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+    # Newest pod of the job, ignoring any pod already being deleted
+    pod_name=$(kubectl get pod -n jmeter -l app=jmeter-tester --sort-by=.metadata.creationTimestamp \
+      -o jsonpath='{range .items[?(@.metadata.deletionTimestamp==null)]}{.metadata.name}{"\n"}{end}' 2>/dev/null | tail -n1)
     if [ -n "$pod_name" ]; then
       pod_phase=$(kubectl get pod -n jmeter "$pod_name" -o jsonpath='{.status.phase}' 2>/dev/null)
-      if [ "$pod_phase" = "Running" ]; then
-        break
-      fi
+      waiting_reason=$(kubectl get pod -n jmeter "$pod_name" -o jsonpath='{.status.containerStatuses[0].state.waiting.reason}' 2>/dev/null)
+      case "$pod_phase" in
+        Running|Succeeded|Failed) break ;;
+      esac
+      case "$waiting_reason" in
+        ImagePullBackOff|ErrImagePull|CreateContainerConfigError|InvalidImageName) break ;;
+      esac
     fi
     sleep 3
     elapsed=$(( elapsed + 3 ))
@@ -115,15 +131,18 @@ runJmeterTest() {
     printInfo "Stop test:   stopJmeterTest"
     printInfo "The job will auto-delete 60s after completion."
   else
-    printWarn "Pod did not reach Running state within ${timeout}s (phase: ${pod_phase:-unknown})"
+    printWarn "JMeter pod is not running (phase: ${pod_phase:-unknown}, reason: ${waiting_reason:-none}) after ${elapsed}s"
+    kubectl get events -n jmeter --sort-by=.lastTimestamp 2>/dev/null | tail -n 5
     printWarn "Check: kubectl describe pod -n jmeter -l app=jmeter-tester"
+    [ "$pod_phase" = "Failed" ] || [ "$pod_phase" = "Succeeded" ] && printWarn "Logs: kubectl logs -n jmeter $pod_name"
+    return 1
   fi
 }
 
 stopJmeterTest() {
   printInfoSection "Stopping JMeter test"
-  kubectl delete job jmeter-tester -n jmeter 2>/dev/null || true
-  kubectl delete ns jmeter --force 2>/dev/null || true
+  kubectl delete job jmeter-tester -n jmeter --ignore-not-found --wait=true --timeout=150s 2>/dev/null || true
+  kubectl delete ns jmeter --ignore-not-found --wait=true --timeout=150s 2>/dev/null || true
 }
 
 

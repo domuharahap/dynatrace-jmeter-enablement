@@ -95,7 +95,7 @@ JMeter v2.0 exercises additional dtpay endpoints, producing a richer service gra
 
 !!! example "Step-by-step"
 
-    1. Download: [JMeter Perf Test Report-v2.0](dashboard/JMeter-Performance-Test-Report-v2.0.json)
+    1. Download: [JMeter Perf Test Report-v2.0](dashboard/JMeter-Performance-Test-Report-v2.0.json){: download }
     2. In Dynatrace, navigate to **Dashboards → Upload**
     3. Set **auto-refresh** to every **1 minute**
     4. Watch the dashboard update live as JMeter publishes rolling stats
@@ -117,7 +117,7 @@ fetch bizevents
 
 !!! example "Step-by-step"
 
-    1. Download: [JMeter Perf Test Report-v2.1](dashboard/JMeter-Performance-Test-Report-v2.1.json)
+    1. Download: [JMeter Perf Test Report-v2.1](dashboard/JMeter-Performance-Test-Report-v2.1.json){: download }
     2. Upload as a **New Dashboard** with 1-minute auto-refresh
     3. Run the test several times and observe how each run's summary appears as a new row
 
@@ -167,6 +167,79 @@ fetch bizevents
 ```
 
 ---
+
+## Knowledge Check
+
+??? question "1. While the v2.0 test is running, your DQL query for live stats returns no rows. What do you check?"
+    Click to reveal the answer.
+
+    **Answer:**
+
+    1. **Event type.** The rolling events are `com.jmeter.test.stats`. A filter on a different name (for example `com.jmeter.test.stats.live`) matches nothing.
+    2. **Is it really v2.0?** Logs should show `[stats] BizEvent sent — T+30s` lines. If not, you are running an older version (`stopJmeterTest`, then `runJmeterTest v2.0 <url>`).
+    3. **Wait one interval.** The first stats event arrives after `STATS_INTERVAL_SEC` (default 30 s).
+    4. **Token/ingest.** A 401/403 in the logs means `dynatrace-creds` has a token without the `bizevents.ingest` scope.
+    5. **Timeframe.** Make sure the Notebook timeframe includes the last few minutes.
+
+??? question "2. Why does the live stats event come from a separate thread group instead of the main load threads?"
+    Click to reveal the answer.
+
+    **Answer:** The Stats Reporter runs in parallel and sleeps for `STATS_INTERVAL_SEC`, so publishing to Dynatrace never sits inside a load thread's request loop. Posting from the load threads would add the BizEvent call to their timing and distort the very latency being measured, and it would send one event per user rather than one aggregated event per interval.
+
+---
+
+## Hands-on Use Cases
+
+??? example "Hands-on 1: Change the live stats interval to 10 seconds"
+    **Scenario:** A 30-second refresh is too coarse for a short demo. Make the dashboard update every 10 seconds.
+
+    Click to reveal the solution.
+
+    **Solution:**
+
+    1. Stop the current job: `stopJmeterTest`.
+    2. Start the test again with `runJmeterTest v2.0 <url>`, then set the variable on the job the same way `runJmeterTest` sets `JVM_APP_URL` (`kubectl set env`, see *Kubernetes Manifest* in the [JMeter reference](jmeter.md)):
+
+        ```bash
+        kubectl -n jmeter set env job/jmeter-tester STATS_INTERVAL_SEC=10
+        ```
+
+        (Check the actual job name with `kubectl -n jmeter get jobs`.) If the pod is already running, stop and start it again so it picks up the new value.
+    3. Follow the logs.
+
+    **Expected result:** Log lines `[stats] BizEvent sent — T+10s`, `T+20s`, ... and a new `com.jmeter.test.stats` row every 10 seconds. Verify with:
+
+    ```dql
+    fetch bizevents
+    | filter event.type == "com.jmeter.test.stats"
+    | sort timestamp desc
+    | limit 10
+    ```
+
+    **Troubleshooting:** If events are still 30 s apart, the env var was not applied to the running pod. Confirm with `kubectl -n jmeter describe pod -l app=jmeter-tester` and look at the Environment section.
+
+??? example "Hands-on 2: Reconstruct the timeline of one test run"
+    **Scenario:** You need to show how latency evolved over a single run, from start to finish, to spot when degradation began.
+
+    Click to reveal the solution.
+
+    **Solution:**
+
+    1. Let one full run complete (about 10 minutes).
+    2. In a Notebook, fetch the full event history in time order:
+
+        ```dql
+        fetch bizevents
+        | filter event.type in ("com.jmeter.test.start", "com.jmeter.test.stats", "com.jmeter.test.summary")
+        | sort timestamp asc
+        ```
+
+    3. Scan the `avg.latency.ms` (or equivalent latency field) in each `stats` row. Switch the visualization to a line chart over `timestamp` to see the trend.
+    4. Compare with the final `summary` row; the overall average should sit near the average of the stats rows.
+
+    **Expected result:** One `start` row, about 20 `stats` rows (10 min / 30 s), and one `summary` row. A step up in latency at a specific `T+` tells you when to look at the service flow and traces for that window.
+
+    **Troubleshooting:** Mixed events from several runs? Restrict the timeframe to the run, or filter on the run's test name or ID field.
 
 ## What You Accomplished
 

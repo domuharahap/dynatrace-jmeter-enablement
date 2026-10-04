@@ -146,7 +146,7 @@ x-dynatrace-test: LTN=<test-name>;LSN=<scenario>;TSN=<sampler>;VU=<thread>;RUN=<
 9. Create a dashboard to compare load-test traffic vs. real-user traffic side by side. (`Dashboards → Create New Dashboard/Upload `)
 
    i. Download or copy this Dashboard to your local machines. 
-   [JMeter Perf Test Report-v1.2](dashboard/Jmeter-Performance-Test-Report-v1.2.json)
+   [JMeter Perf Test Report-v1.2](dashboard/Jmeter-Performance-Test-Report-v1.2.json){: download }
    
    ii. Navigate to `Dashboards → Select icon arrow on Top Right Conner → Upload`    
    iii. Now Lets Understand how the Metrics performance data pull out and present in dashboards.
@@ -199,7 +199,7 @@ x-dynatrace-test: LTN=<test-name>;LSN=<scenario>;TSN=<sampler>;VU=<thread>;RUN=<
      | limit 20
      ```
    - You should see one `start` event and one `summary` event per completed test run
-   - Lets download [JMeter Perf Test Report-v1.3](dashboard/Jmeter-Performance-Test-Report-v1.3.json) and upload the `start` and `summary` events into dashboard
+   - Lets download [JMeter Perf Test Report-v1.3](dashboard/Jmeter-Performance-Test-Report-v1.3.json){: download } and upload the `start` and `summary` events into dashboard
    
    ![Dynatrace dashboard for v1.3](img/jmeter/v1.3-dt-dashboard.png)
 
@@ -256,7 +256,7 @@ x-dynatrace-test: LTN=<test-name>;LSN=<scenario>;TSN=<sampler>;VU=<thread>;RUN=<
 
 9. Build a **real-time Dynatrace Dashboard** that auto-refreshes as the test runs. (`Dashboards → Create New Dashboard/Upload`)
 
-   i. Download dashboard [JMeter Perf Test Report-v2.0](dashboard/JMeter-Performance-Test-Report-v2.0.json)
+   i. Download dashboard [JMeter Perf Test Report-v2.0](dashboard/JMeter-Performance-Test-Report-v2.0.json){: download }
 
    ii. Upload a **New dashboard** set auto refresh the dashboard every 1-minutes intervals  
 
@@ -264,7 +264,7 @@ x-dynatrace-test: LTN=<test-name>;LSN=<scenario>;TSN=<sampler>;VU=<thread>;RUN=<
 
 10. Run multiple test iterations and compare results using DQL — useful for tracking performance across releases or config changes:
 
-    i. Download dashboard [JMeter Perf Test Report-v2.1](dashboard/JMeter-Performance-Test-Report-v2.1.json)
+    i. Download dashboard [JMeter Perf Test Report-v2.1](dashboard/JMeter-Performance-Test-Report-v2.1.json){: download }
     
     ii. Upload a **New dashboard** set auto refresh the dashboard every 1-minutes intervals  
      ![Dynatrace dashboard for v2.0](img/jmeter/v2.0-dt-dashboard-compare.png)

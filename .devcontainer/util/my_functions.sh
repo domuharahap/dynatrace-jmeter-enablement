@@ -101,7 +101,7 @@ runJmeterTest() {
 
   printInfo "JMeter job submitted (version $version, target: $target_url). Waiting for pod to start..."
 
-  # Wait up to 5 minutes (image pull of the first run can be slow) for the pod to start
+  # Wait up to 2 minutes (image pull of the first run can be slow) for the pod to start
   local timeout=120
   local elapsed=0
   local pod_phase=""

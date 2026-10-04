@@ -34,7 +34,7 @@ Before launching the Codespace, ensure you have everything in place.
         | `DT_OPERATOR_TOKEN` | :material-check-circle:{ .green } required |
         | `DT_INGEST_TOKEN` | :material-check-circle:{ .green } required |
 
-    3. Wait for the Codespace to finish initializing — the post-create script installs the Kubernetes cluster, deploys the Dynatrace Operator, and deploys **dtpay** automatically
+    3. Wait for the Codespace to finish initializing — the post-create script installs the Kubernetes cluster, and deploys the Dynatrace Operator (dtpay is deployed manually in Part 2)
     4. Open the **Terminal** panel in VS Code (`View → Open View → Terminal`)
     5. Verify the cluster and Dynatrace Operator are running:
 
@@ -48,12 +48,30 @@ Before launching the Codespace, ensure you have everything in place.
 
     - Creates a K3d Kubernetes cluster
     - Deploys the Dynatrace Operator via Helm and applies your credentials as a Dynakube
-    - Deploys **dtpay** into the `dtusecase` namespace
-    - Exposes the MkDocs documentation on port 8000
 
 ---
 
-## Part 2 — Make Port 80 Public
+## Part 2 — Deploy the dtpay Application
+
+The **dtpay** application is not deployed automatically. Deploy it manually from the terminal once the Codespace has finished initializing.
+
+!!! example "Step-by-step"
+
+    1. Open the **Terminal** panel in VS Code (`View → Open View → Terminal`)
+    2. Run the following command:
+
+    ```bash
+    deployDtpay
+    ```
+
+    3. Wait for the command to finish — it creates the `dtusecase` namespace, applies all manifests, waits for the pods, and registers the frontend with the ingress
+    4. Verify the pods are running:
+
+    ```bash
+    kubectl get pods -n dtusecase
+    ```
+
+## Part 3 — Make Port 80 Public
 
 JMeter runs **inside the cluster** as a Kubernetes Job, so it reaches dtpay via the internal service without going through the Codespaces forwarded URL. However, to verify the dtpay portal is accessible (or to test from Postman), set port 80 to **Public** first.
 
@@ -71,22 +89,6 @@ JMeter runs **inside the cluster** as a Kubernetes Job, so it reaches dtpay via 
     Set port 80 back to **Private** at the end of the workshop to avoid leaving the ingress publicly exposed.
 
 ---
-
-## Part 3 — Verify dtpay is Running
-
-Confirm the payment application is deployed and ready before starting JMeter tests.
-
-```bash
-kubectl get all -n dtusecase
-```
-
-You should see the `backend-usecase` and `payment-frontend` deployments in `Running` state.
-
-If dtpay is not yet deployed, run:
-
-```bash
-deployDtpay
-```
 
 !!! tip ""
     `deployDtpay` creates the `dtusecase` namespace, applies all manifests, waits for pods, and registers the frontend with the ingress — accessible via port 80.

@@ -101,42 +101,15 @@ runJmeterTest() {
 
   printInfo "JMeter job submitted (version $version, target: $target_url). Waiting for pod to start..."
 
-  # Wait up to 2 minutes (image pull of the first run can be slow) for the pod to start
-  local timeout=120
-  local elapsed=0
-  local pod_phase=""
-  local pod_name=""
-  local waiting_reason=""
-  while [ $elapsed -lt $timeout ]; do
-    # Newest pod of the job, ignoring any pod already being deleted
-    pod_name=$(kubectl get pod -n jmeter -l app=jmeter-tester --sort-by=.metadata.creationTimestamp \
-      -o jsonpath='{range .items[?(@.metadata.deletionTimestamp==null)]}{.metadata.name}{"\n"}{end}' 2>/dev/null | tail -n1)
-    if [ -n "$pod_name" ]; then
-      pod_phase=$(kubectl get pod -n jmeter "$pod_name" -o jsonpath='{.status.phase}' 2>/dev/null)
-      waiting_reason=$(kubectl get pod -n jmeter "$pod_name" -o jsonpath='{.status.containerStatuses[0].state.waiting.reason}' 2>/dev/null)
-      case "$pod_phase" in
-        Running|Succeeded|Failed) break ;;
-      esac
-      case "$waiting_reason" in
-        ImagePullBackOff|ErrImagePull|CreateContainerConfigError|InvalidImageName) break ;;
-      esac
-    fi
-    sleep 3
-    elapsed=$(( elapsed + 3 ))
-  done
+  waitForPod jmeter jmeter-tester
 
-  if [ "$pod_phase" = "Running" ]; then
-    printInfo "JMeter test is RUNNING (pod: $pod_name, target: $target_url)"
-    printInfo "Follow logs: kubectl logs -n jmeter $pod_name --follow"
-    printInfo "Stop test:   stopJmeterTest"
-    printInfo "The job will auto-delete 60s after completion."
-  else
-    printWarn "JMeter pod is not running (phase: ${pod_phase:-unknown}, reason: ${waiting_reason:-none}) after ${elapsed}s"
-    kubectl get events -n jmeter --sort-by=.lastTimestamp 2>/dev/null | tail -n 5
-    printWarn "Check: kubectl describe pod -n jmeter -l app=jmeter-tester"
-    [ "$pod_phase" = "Failed" ] || [ "$pod_phase" = "Succeeded" ] && printWarn "Logs: kubectl logs -n jmeter $pod_name"
-    return 1
-  fi
+  local pod_name
+  pod_name=$(kubectl get pod -n jmeter -l app=jmeter-tester --sort-by=.metadata.creationTimestamp \
+    -o jsonpath='{range .items[?(@.metadata.deletionTimestamp==null)]}{.metadata.name}{"\n"}{end}' 2>/dev/null | tail -n1)
+  printInfo "JMeter test started (pod: ${pod_name:-unknown}, target: $target_url)"
+  printInfo "Follow logs: kubectl logs -n jmeter $pod_name --follow"
+  printInfo "Stop test:   stopJmeterTest"
+  printInfo "The job will auto-delete 60s after completion."
 }
 
 stopJmeterTest() {

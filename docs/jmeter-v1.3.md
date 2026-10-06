@@ -127,7 +127,7 @@ With BizEvents at test boundaries you can now:
 ??? question "2. Where do the Groovy scripts get the Dynatrace URL and token from, and why is that better than hard-coding them in the test plan?"
     Click to reveal the answer.
 
-    **Answer:** From `DT_URL` and `DT_TOKEN` in the `dynatrace-creds` Kubernetes secret in the `jmeter` namespace, which the framework creates from `DT_ENVIRONMENT` and `DT_OPERATOR_TOKEN`. Secrets are kept out of the image and the test plan (so they are not committed or leaked) and can be rotated without rebuilding the JMeter image.
+    **Answer:** From `DT_URL` and `DT_TOKEN` in the `dynatrace-creds` Kubernetes secret in the `jmeter` namespace, which the framework creates from `DT_ENVIRONMENT` and `DT_BIZEVENT_TOKEN`. Secrets are kept out of the image and the test plan (so they are not committed or leaked) and can be rotated without rebuilding the JMeter image.
 
 ---
 

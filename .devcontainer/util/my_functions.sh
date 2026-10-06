@@ -44,6 +44,11 @@ runJmeterTest() {
     return 1
   fi
 
+  if [ -z "${DT_BIZEVENT_TOKEN:-}" ]; then
+    printWarn "DT_BIZEVENT_TOKEN is not set (needs 'bizevents.ingest' scope). Add it as a Codespaces secret, then rebuild/restart the codespace."
+    return 1
+  fi
+
   printInfoSection "Running JMeter load test against dtpay (image: domuharahap/jmeter-tester:$version)"
 
   local target_url
@@ -70,7 +75,7 @@ runJmeterTest() {
   kubectl get ns jmeter >/dev/null 2>&1 || kubectl create namespace jmeter || return 1
 
   # Create dynatrace-creds secret in the jmeter namespace from the codespace env vars.
-  # DT_ENVIRONMENT and DT_OPERATOR_TOKEN are injected by Codespaces secrets at startup.
+  # DT_ENVIRONMENT and DT_BIZEVENT_TOKEN are injected by Codespaces secrets at startup.
   # Secrets are namespace-scoped — the dynatrace namespace secret cannot be read here.
 
   # Normalize DT_ENVIRONMENT: strip trailing slash, replace .apps.dynatrace.com → .live.dynatrace.com
@@ -84,7 +89,7 @@ runJmeterTest() {
 
   kubectl -n jmeter create secret generic dynatrace-creds \
     --from-literal="DT_ENVIRONMENT=${dt_env}" \
-    --from-literal="DT_OPERATOR_TOKEN=${DT_OPERATOR_TOKEN:-}" \
+    --from-literal="DT_BIZEVENT_TOKEN=${DT_BIZEVENT_TOKEN:-}" \
     --dry-run=client -o yaml | kubectl apply -f - || return 1
 
   # Delete any prior run and wait until its pod is gone, so the wait loop below

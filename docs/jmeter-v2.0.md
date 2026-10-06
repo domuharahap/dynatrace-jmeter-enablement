@@ -137,7 +137,7 @@ fetch bizevents
 | `JVM_DT_TOKEN` | *(required)* | DT API token with `bizevents.ingest` scope |
 | `STATS_INTERVAL_SEC` | `30` | How often v2.0 publishes a live stats BizEvent |
 
-`JVM_DT_URL` and `JVM_DT_TOKEN` are read from the `dynatrace-creds` Kubernetes Secret in the `jmeter` namespace — created automatically by `runJmeterTest` from `DT_ENVIRONMENT` and `DT_OPERATOR_TOKEN`.
+`JVM_DT_URL` and `JVM_DT_TOKEN` are read from the `dynatrace-creds` Kubernetes Secret in the `jmeter` namespace — created automatically by `runJmeterTest` from `DT_ENVIRONMENT` and `DT_BIZEVENT_TOKEN`.
 
 ---
 

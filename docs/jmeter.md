@@ -285,7 +285,7 @@ x-dynatrace-test: LTN=<test-name>;LSN=<scenario>;TSN=<sampler>;VU=<thread>;RUN=<
 | `JVM_DT_TOKEN` | *(required)* | DT API token with `bizevents.ingest` scope |
 | `STATS_INTERVAL_SEC` | `30` | How often (in seconds) v2.0 publishes a live stats BizEvent |
 
-`JVM_DT_URL` and `JVM_DT_TOKEN` are read from a Kubernetes Secret (`dynatrace-creds` in the `jmeter` namespace). The framework functions create this secret automatically from `DT_ENVIRONMENT` and `DT_OPERATOR_TOKEN`.
+`JVM_DT_URL` and `JVM_DT_TOKEN` are read from a Kubernetes Secret (`dynatrace-creds` in the `jmeter` namespace). The framework functions create this secret automatically from `DT_ENVIRONMENT` and `DT_BIZEVENT_TOKEN`.
 
 ---
 
@@ -323,7 +323,7 @@ runJmeterTest v1.0 your-frontend-payment-portal-80.app.github.dev
 
 1. Resolve `JVM_APP_URL` — use `app_url` argument if given, otherwise auto-detect via `getAppURL payment-frontend`
 2. Create the `jmeter` namespace
-3. Create/update the `dynatrace-creds` secret from `DT_ENVIRONMENT` and `DT_OPERATOR_TOKEN`
+3. Create/update the `dynatrace-creds` secret from `DT_ENVIRONMENT` and `DT_BIZEVENT_TOKEN`
 4. Delete any prior `jmeter-tester` job
 5. Apply [.devcontainer/apps/jmeter-tester/manifests/jmeter-job.yaml](.devcontainer/apps/jmeter-tester/manifests/jmeter-job.yaml)
 6. Patch the image version and `JVM_APP_URL` at runtime

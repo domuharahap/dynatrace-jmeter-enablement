@@ -36,7 +36,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: dynatrace-creds
-                  key: DT_OPERATOR_TOKEN
+                  key: DT_BIZEVENT_TOKEN
           resources:
             requests:
               memory: "512Mi"
